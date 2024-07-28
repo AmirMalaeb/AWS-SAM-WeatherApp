@@ -34,12 +34,14 @@ Update the Lambda function code in `hello_world/app.py` as needed.
 ```bash
 sam build
 sam package --output-template-file packaged.yaml --s3-bucket your-s3-bucket-name
+```
 
 ### Step 3: Deploy the Application
 
 ```bash
 sam deploy --template-file packaged.yaml --stack-name weather-dashboard-stack --capabilities CAPABILITY_IAM
+```
 
 ### Step 4: Upload the Static Website to S3 Update the website/index.html file with your API Gateway URL.
-
+```bash
 aws s3 cp website/ s3://your-unique-bucket-name/ --recursive
