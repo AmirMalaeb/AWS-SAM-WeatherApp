@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Real-Time Weather Dashboard using AWS SAM
+Resources:
+  WeatherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://samweatherapp/ed977c18b5d97858cfd4776572254383
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          WEATHER_API_URL: https://api.openweathermap.org/data/3.0/onecall
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - ssm:GetParameter
+          Resource:
+            Fn::Sub: arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/WeatherApiKey
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: WebApi
+            Path: /weather
+            Method: get
+    Metadata:
+      SamResourceId: WeatherFunction
+  WebApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: Serverless Web App API
+        paths:
+          /weather:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WeatherFunction.Arn}/invocations
+              responses: {}
+    Metadata:
+      SamResourceId: WebApi
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+    Metadata:
+      SamResourceId: WebBucket
+Outputs:
+  WeatherApiUrl:
+    Description: URL for the Weather API
+    Value:
+      Fn::Sub: https://${WebApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/weather
+  WebBucketURL:
+    Description: URL for the static website
+    Value:
+      Fn::GetAtt:
+      - WebBucket
+      - WebsiteURL
